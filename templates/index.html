@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h4 class="card-title">Welcome</h4>
+        <p class="text-muted">Predict disease risk with machine learning. Start with heart disease or review model performance.</p>
+        <a href="{{ url_for('predict_heart') }}" class="btn btn-success">Predict Heart Disease</a>
+        <a href="{{ url_for('compare') }}" class="btn btn-outline-primary ms-2">Compare Models</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Quick stats</h5>
+        {% if metrics.heart %}
+          <p><strong>Best heart model:</strong> {{ metrics.heart.best }}</p>
+          <p class="mb-0"><strong>F1 score:</strong> {{ "%.3f"|format(metrics.heart.models[metrics.heart.best].f1) }}</p>
+        {% else %}
+          <p class="text-muted">Train models to see metrics.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
