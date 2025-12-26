@@ -4,19 +4,14 @@ import numpy as np
 import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, flash
 from joblib import load
+import csv
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "change_this_for_prod"
 
 BASE_DIR = os.path.dirname(__file__)
 ARTIFACTS = os.path.join(BASE_DIR, 'models', 'artifacts')
-
-def load_metrics():
-    path = os.path.join(ARTIFACTS, 'metrics.json')
-    if os.path.exists(path):
-        with open(path, 'r') as f:
-            return json.load(f)
-    return {}
 
 def load_model_scaler(task):
     model_path = os.path.join(ARTIFACTS, f"{task}_model.pkl")
@@ -27,13 +22,8 @@ def load_model_scaler(task):
 
 @app.route("/")
 def index():
-    metrics = load_metrics()
-    return render_template("index.html", metrics=metrics)
-
-@app.route("/compare")
-def compare():
-    metrics = load_metrics()
-    return render_template("compare.html", metrics=metrics)
+    # Metrics display removed in favor of simple prediction focus
+    return render_template("index.html", metrics={})
 
 @app.route("/predict/heart", methods=["GET", "POST"])
 def predict_heart():
@@ -66,6 +56,23 @@ def predict_heart():
                 # fallback to decision function or predicted label
                 proba = None
             pred = int(model.predict(X_scaled)[0])
+
+            # Save prediction to CSV
+            try:
+                log_file = os.path.join(BASE_DIR, 'data', 'logged_predictions.csv')
+                file_exists = os.path.isfile(log_file)
+                
+                with open(log_file, 'a', newline='') as f:
+                    writer = csv.writer(f)
+                    if not file_exists:
+                        # Write header
+                        header = ['timestamp'] + feature_names + ['prediction', 'probability']
+                        writer.writerow(header)
+                    
+                    row = [datetime.now().strftime("%Y-%m-%d %H:%M:%S")] + values + [pred, proba if proba is not None else ""]
+                    writer.writerow(row)
+            except Exception as log_err:
+                print(f"Failed to log prediction: {log_err}")
 
             return render_template(
                 "result.html",

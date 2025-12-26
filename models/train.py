@@ -14,31 +14,30 @@ os.makedirs(ARTIFACT_DIR, exist_ok=True)
 def train_for_task(task_name: str, df: pd.DataFrame, preprocess_fn):
     print(f"=== Training for {task_name} ===")
     prep = preprocess_fn(df)
-    X_train, X_test, y_train, y_test = train_test_split(
-        prep.X, prep.y, test_size=0.2, random_state=42, stratify=prep.y
-    )
+    
+    # We now strictly use the single model defined in registry
     models = get_model_candidates()
-    results = {}
-    best_model_name = None
-    best_f1 = -1.0
+    # Assuming only one model is left, or we pick the first one
+    name, model = list(models.items())[0]
+    
+    print(f"Training {name}...")
+    # Train on full provided dataset (since we are finalizing the model)
+    # But for consistency with previous logic, we can still split or just fit on all.
+    # To keep it robust, let's fit on the whole dataset for the final artifact
+    model.fit(prep.X, prep.y)
+    
+    # Evaluate (Optional, just to print score)
+    # X_train, X_test, y_train, y_test = train_test_split(prep.X, prep.y, test_size=0.2, random_state=42)
+    # model.fit(X_train, y_train)
+    # score = model.score(X_test, y_test)
+    # print(f"Validation Accuracy: {score:.3f}")
 
-    for name, model in models.items():
-        print(f"Training {name}...")
-        metrics = evaluate_model(model, X_train, y_train, X_test, y_test)
-        cv_res = cross_validate_model(model, prep.X, prep.y, cv_splits=5)
-        metrics.update(cv_res)
-        results[name] = metrics
-        if metrics["f1"] > best_f1:
-            best_f1 = metrics["f1"]
-            best_model_name = name
-            best_model = model
-
-    # Persist best model and scaler
-    dump(best_model, os.path.join(ARTIFACT_DIR, f"{task_name}_model.pkl"))
+    # Persist model and scaler
+    dump(model, os.path.join(ARTIFACT_DIR, f"{task_name}_model.pkl"))
     dump(prep.scaler, os.path.join(ARTIFACT_DIR, f"{task_name}_scaler.pkl"))
-    print(f"Best model for {task_name}: {best_model_name} (F1={best_f1:.3f})")
+    print(f"Saved {name} for {task_name}")
 
-    return results, best_model_name
+    return {}, name
 
 def main():
     metrics_all = {}
