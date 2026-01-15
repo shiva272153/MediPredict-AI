@@ -16,3 +16,4 @@ def get_model_candidates(task_name=None):
             "LogisticRegression": LogisticRegression(max_iter=1000),
             "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42)
         }
+
